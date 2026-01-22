@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 
@@ -11,8 +12,11 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // Use admin client to bypass RLS
+  const adminSupabase = createAdminClient()
+
   // Check if user is admin
-  const { data: profile } = await supabase
+  const { data: profile } = await adminSupabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
@@ -22,7 +26,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { data: invitations, error } = await supabase
+  const { data: invitations, error } = await adminSupabase
     .from('invitations')
     .select(`
       *,
@@ -46,8 +50,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // Use admin client to bypass RLS
+  const adminSupabase = createAdminClient()
+
   // Check if user is admin
-  const { data: profile } = await supabase
+  const { data: profile } = await adminSupabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
@@ -65,7 +72,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check if email already has a user account
-  const { data: existingProfile } = await supabase
+  const { data: existingProfile } = await adminSupabase
     .from('profiles')
     .select('id')
     .eq('email', email)
@@ -79,7 +86,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check for existing pending invitation
-  const { data: existingInvitation } = await supabase
+  const { data: existingInvitation } = await adminSupabase
     .from('invitations')
     .select('id')
     .eq('email', email)
@@ -101,7 +108,7 @@ export async function POST(request: NextRequest) {
   const expiresAt = new Date()
   expiresAt.setDate(expiresAt.getDate() + 7)
 
-  const { data: invitation, error } = await supabase
+  const { data: invitation, error } = await adminSupabase
     .from('invitations')
     .insert({
       email,
@@ -136,8 +143,11 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // Use admin client to bypass RLS
+  const adminSupabase = createAdminClient()
+
   // Check if user is admin
-  const { data: profile } = await supabase
+  const { data: profile } = await adminSupabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
@@ -154,7 +164,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Invitation ID is required' }, { status: 400 })
   }
 
-  const { error } = await supabase
+  const { error } = await adminSupabase
     .from('invitations')
     .delete()
     .eq('id', id)

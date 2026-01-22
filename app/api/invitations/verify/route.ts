@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 
 // GET - Verify an invitation token
@@ -10,7 +10,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Token is required' }, { status: 400 })
   }
 
-  const supabase = await createClient()
+  // Use admin client to bypass RLS for invitation verification
+  const supabase = createAdminClient()
 
   const { data: invitation, error } = await supabase
     .from('invitations')
