@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SOP Upload Schema",
+  "description": "Schema for uploading Standard Operating Procedures to SOP Hub",
+  "type": "object",
+  "required": ["title", "steps"],
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "The main title of the SOP",
+      "minLength": 1
+    },
+    "objectives": {
+      "type": "string",
+      "description": "Objectives and expected outcomes of the procedure"
+    },
+    "prerequisites": {
+      "type": "string",
+      "description": "Required logins, tools, access, and preconditions"
+    },
+    "tags": {
+      "type": "array",
+      "description": "Tags for categorizing the SOP",
+      "items": {
+        "type": "string"
+      }
+    },
+    "steps": {
+      "type": "array",
+      "description": "Ordered list of procedure steps",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["title", "content"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Brief title describing this step"
+          },
+          "content": {
+            "type": "string",
+            "description": "Detailed instructions for this step (supports markdown)"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,110 @@
+title: Customer Onboarding Process
+
+objectives: |
+  Successfully onboard new customers ensuring they have access to all required
+  systems and understand the product basics. By the end of this process, the
+  customer should be able to use the core features independently.
+
+prerequisites: |
+  - Admin access to Customer Portal
+  - Access to email system
+  - Customer's signed contract
+  - Welcome email template
+
+tags:
+  - onboarding
+  - customer-success
+
+steps:
+  - title: Verify Contract and Customer Details
+    content: |
+      1. Log into the Customer Portal
+      2. Navigate to **Pending Onboardings**
+      3. Locate the customer's entry and verify:
+         - Contract is signed and dated
+         - Contact email is valid
+         - Subscription tier matches the contract
+
+  - title: Create Customer Account
+    content: |
+      1. Click **Create Account** in the customer's entry
+      2. Fill in the required fields:
+         - Company name
+         - Primary contact email
+         - Subscription tier
+      3. Click **Save and Send Invitation**
+
+      > Note: The system will automatically send a welcome email with login credentials.
+
+  - title: Schedule Kickoff Call
+    content: |
+      1. Send calendar invite to customer's primary contact
+      2. Include:
+         - Video conference link
+         - Agenda document
+         - Any pre-call preparation items
+      3. Set reminder for 24 hours before the call
+
+  - title: Determine Onboarding Approach
+    type: decision
+    content: |
+      DECISION: What onboarding format is best for this customer?
+
+      CHECK 1: Is this a high-value enterprise customer (>$50k ACV)?
+
+          → YES
+              ✓ Action: Use WHITE GLOVE onboarding
+                • Dedicated CSM assigned
+                • Custom training sessions
+                • Weekly check-ins for first month
+
+          → NO
+              ✓ Action: Continue to Check 2
+
+      CHECK 2: Does the customer have technical staff available?
+
+          → YES (they have developers or technical admins)
+              ✓ Action: Use SELF-SERVICE onboarding
+                • Send API documentation
+                • Provide sandbox environment
+                • Offer optional office hours
+
+          → NO (non-technical team)
+              ✓ Action: Use GUIDED onboarding
+                • Schedule hands-on training call
+                • Provide step-by-step video guides
+                • Assign support contact for questions
+
+          → UNSURE
+              • Check LinkedIn for team composition
+              • Ask in kickoff call about technical resources
+              • Still unclear? Default to GUIDED approach
+
+      ⚠️ ESCALATE TO MANAGER IF:
+          • Customer requests custom onboarding not listed above
+          • Contract includes specific onboarding SLAs
+          • Customer is in a regulated industry (healthcare, finance)
+
+  - title: Conduct Kickoff and Training
+    content: |
+      During the kickoff call:
+
+      1. Introduce the team
+      2. Walk through the product dashboard
+      3. Demonstrate core features:
+         - Feature A: Basic usage
+         - Feature B: Configuration options
+         - Feature C: Reporting
+      4. Answer questions
+      5. Share training resources link
+
+  - title: Follow Up and Close Onboarding
+    content: |
+      Within 48 hours after the kickoff:
+
+      1. Send follow-up email with:
+         - Recording of the call (if applicable)
+         - Links to documentation
+         - Support contact information
+      2. Update customer status to **Active** in the portal
+      3. Schedule 30-day check-in call
