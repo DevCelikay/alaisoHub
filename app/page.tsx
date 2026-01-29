@@ -9,6 +9,7 @@ import SOPViewer from '@/components/SOPViewer'
 import PromptViewer from '@/components/PromptViewer'
 import SOPEditor from '@/components/SOPEditor'
 import PromptEditor from '@/components/PromptEditor'
+import ReportingDashboard from '@/components/campaigns/ReportingDashboard'
 import { Tag, SOPWithTags, PromptWithTags, SOPStep } from '@/lib/types/database'
 import { parseSOPFile, readFileAsText } from '@/lib/utils/sopParser'
 
@@ -266,12 +267,8 @@ export default function Home() {
       )
     } else if (activeApp === 'reporting') {
       return (
-        <div className="flex-1 flex items-center justify-center p-3">
-          <div className="text-center bg-white rounded-2xl shadow-lg border border-[#e3e3e3] p-12">
-            <div className="text-6xl mb-4">📊</div>
-            <h2 className="text-2xl font-semibold text-[#1a1a1a] mb-2">Reporting</h2>
-            <p className="text-[#878787]">Coming soon...</p>
-          </div>
+        <div className="h-full overflow-y-auto">
+          <ReportingDashboard />
         </div>
       )
     } else if (activeApp === 'copywriting') {
