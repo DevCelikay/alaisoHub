@@ -67,7 +67,7 @@ export async function GET(
     // Transform data for easier consumption in UI
     const transformedGroup = {
       ...group,
-      variants: group.variants?.map((variant) => ({
+      variants: group.variants?.map((variant: any) => ({
         variant_label: variant.variant_label,
         campaign: {
           ...variant.campaign,
