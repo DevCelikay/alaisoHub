@@ -140,36 +140,39 @@ export default function MetricsCard({
 
 // Pre-configured metric cards for common use cases
 export function OpenRateCard({ value, ...props }: Omit<MetricsCardProps, 'label' | 'format'>) {
+  const numValue = typeof value === 'number' ? value : parseFloat(value)
   return (
     <MetricsCard
       label="Open Rate"
       value={value}
       format="percentage"
-      color={value > 50 ? 'green' : value > 30 ? 'yellow' : 'red'}
+      color={numValue > 50 ? 'green' : numValue > 30 ? 'yellow' : 'red'}
       {...props}
     />
   )
 }
 
 export function ReplyRateCard({ value, ...props }: Omit<MetricsCardProps, 'label' | 'format'>) {
+  const numValue = typeof value === 'number' ? value : parseFloat(value)
   return (
     <MetricsCard
       label="Reply Rate"
       value={value}
       format="percentage"
-      color={value > 10 ? 'green' : value > 5 ? 'yellow' : 'red'}
+      color={numValue > 10 ? 'green' : numValue > 5 ? 'yellow' : 'red'}
       {...props}
     />
   )
 }
 
 export function BounceRateCard({ value, ...props }: Omit<MetricsCardProps, 'label' | 'format'>) {
+  const numValue = typeof value === 'number' ? value : parseFloat(value)
   return (
     <MetricsCard
       label="Bounce Rate"
       value={value}
       format="percentage"
-      color={value < 5 ? 'green' : value < 10 ? 'yellow' : 'red'}
+      color={numValue < 5 ? 'green' : numValue < 10 ? 'yellow' : 'red'}
       {...props}
     />
   )

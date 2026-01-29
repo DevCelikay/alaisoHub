@@ -205,13 +205,18 @@ export default function CreateVariantGroupModal({
                       className="flex-1 cursor-pointer"
                     >
                       <div className="font-medium">{campaign.name}</div>
-                      {campaign.analytics && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Open: {campaign.analytics.open_rate?.toFixed(1)}% | Reply:{' '}
-                          {campaign.analytics.reply_rate?.toFixed(1)}% |{' '}
-                          {campaign.analytics.emails_sent_count} sent
-                        </div>
-                      )}
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {campaign.reply_rate !== null && (
+                          <span>Reply: {campaign.reply_rate.toFixed(1)}%</span>
+                        )}
+                        {campaign.reply_rate !== null && campaign.emails_sent > 0 && ' | '}
+                        {campaign.emails_sent > 0 && (
+                          <span>{campaign.emails_sent} sent</span>
+                        )}
+                        {campaign.emails_sent === 0 && campaign.reply_rate === null && (
+                          <span className="text-muted-foreground">No data yet</span>
+                        )}
+                      </div>
                     </Label>
                   </div>
                 ))}
