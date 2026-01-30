@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS resources (
   file_data TEXT,  -- base64 encoded, nullable for URL resources
   file_size INTEGER,
   url TEXT,  -- for URL resources
-  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   is_archived BOOLEAN DEFAULT FALSE
@@ -39,30 +39,17 @@ CREATE POLICY "Resources are viewable by everyone"
   ON resources FOR SELECT
   USING (true);
 
+-- Same pattern as sops/prompts in supabase-schema.sql
 DROP POLICY IF EXISTS "Admins can insert resources" ON resources;
-CREATE POLICY "Admins can insert resources"
-  ON resources FOR INSERT
-  WITH CHECK (
-    auth.uid() IN (
-      SELECT id FROM profiles WHERE is_admin = true
-    )
-  );
-
 DROP POLICY IF EXISTS "Admins can update resources" ON resources;
-CREATE POLICY "Admins can update resources"
-  ON resources FOR UPDATE
-  USING (
-    auth.uid() IN (
-      SELECT id FROM profiles WHERE is_admin = true
-    )
-  );
-
 DROP POLICY IF EXISTS "Admins can delete resources" ON resources;
-CREATE POLICY "Admins can delete resources"
-  ON resources FOR DELETE
+DROP POLICY IF EXISTS "Only admins can manage resources" ON resources;
+CREATE POLICY "Only admins can manage resources"
+  ON resources FOR ALL
   USING (
-    auth.uid() IN (
-      SELECT id FROM profiles WHERE is_admin = true
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid() AND profiles.is_admin = true
     )
   );
 
@@ -73,11 +60,13 @@ CREATE POLICY "Resource tags are viewable by everyone"
   USING (true);
 
 DROP POLICY IF EXISTS "Admins can manage resource tags" ON resource_tags;
-CREATE POLICY "Admins can manage resource tags"
+DROP POLICY IF EXISTS "Only admins can manage resource tags" ON resource_tags;
+CREATE POLICY "Only admins can manage resource tags"
   ON resource_tags FOR ALL
   USING (
-    auth.uid() IN (
-      SELECT id FROM profiles WHERE is_admin = true
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid() AND profiles.is_admin = true
     )
   );
 
