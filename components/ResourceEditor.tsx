@@ -1,9 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { ResourceWithTags, Tag } from '@/lib/types/database'
-import { useUser } from '@/lib/hooks/useUser'
 
 interface ResourceEditorProps {
   resource: ResourceWithTags | null
@@ -12,7 +10,6 @@ interface ResourceEditorProps {
 }
 
 export default function ResourceEditor({ resource, tags, onClose }: ResourceEditorProps) {
-  const { user } = useUser()
   const [title, setTitle] = useState(resource?.title || '')
   const [description, setDescription] = useState(resource?.description || '')
   const [selectedTags, setSelectedTags] = useState<string[]>(
@@ -94,67 +91,45 @@ export default function ResourceEditor({ resource, tags, onClose }: ResourceEdit
     setSaving(true)
     setError(null)
 
-    const supabase = createClient()
+    const body = {
+      title: title.trim(),
+      description: description.trim() || null,
+      resource_type: resourceType,
+      file_name: resourceType === 'file' ? fileName || null : null,
+      file_type: resourceType === 'file' ? fileType || null : null,
+      file_data: resourceType === 'file' ? fileData || null : null,
+      file_size: resourceType === 'file' ? fileSize : null,
+      url: resourceType === 'url' ? url.trim() : null,
+      tag_ids: selectedTags
+    }
 
     try {
-      const resourceData = {
-        title: title.trim(),
-        description: description.trim() || null,
-        resource_type: resourceType,
-        file_name: resourceType === 'file' ? fileName || null : null,
-        file_type: resourceType === 'file' ? fileType || null : null,
-        file_data: resourceType === 'file' ? fileData || null : null,
-        file_size: resourceType === 'file' ? fileSize : null,
-        url: resourceType === 'url' ? url.trim() : null,
-        created_by: user?.id || null
-      }
-
-      let resourceId = resource?.id
-
       if (resource) {
-        const { error: updateError } = await supabase
-          .from('resources')
-          .update(resourceData)
-          .eq('id', resource.id)
-
-        if (updateError) throw updateError
+        const res = await fetch(`/api/resources/${resource.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          setError(data.error ?? 'Update failed')
+          return
+        }
       } else {
-        const { data, error: insertError } = await supabase
-          .from('resources')
-          .insert(resourceData)
-          .select()
-          .single()
-
-        if (insertError) throw insertError
-        resourceId = data.id
-      }
-
-      // Update tags
-      if (resourceId) {
-        // Delete existing tag associations
-        await supabase
-          .from('resource_tags')
-          .delete()
-          .eq('resource_id', resourceId)
-
-        // Insert new tag associations
-        if (selectedTags.length > 0) {
-          const tagAssociations = selectedTags.map(tagId => ({
-            resource_id: resourceId,
-            tag_id: tagId
-          }))
-
-          const { error: tagsError } = await supabase
-            .from('resource_tags')
-            .insert(tagAssociations)
-
-          if (tagsError) throw tagsError
+        const res = await fetch('/api/resources', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          setError(data.error ?? 'Create failed')
+          return
         }
       }
-
       onClose()
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setSaving(false)
     }
@@ -164,18 +139,18 @@ export default function ResourceEditor({ resource, tags, onClose }: ResourceEdit
     if (!resource || !confirm('Are you sure you want to delete this resource?')) return
 
     setSaving(true)
-    const supabase = createClient()
+    setError(null)
 
     try {
-      const { error } = await supabase
-        .from('resources')
-        .delete()
-        .eq('id', resource.id)
-
-      if (error) throw error
+      const res = await fetch(`/api/resources/${resource.id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error ?? 'Delete failed')
+        return
+      }
       onClose()
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setSaving(false)
     }
