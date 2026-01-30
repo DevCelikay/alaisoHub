@@ -8,20 +8,29 @@ interface SOPViewerProps {
   sop: SOPWithTags
   onClose?: () => void
   onEdit?: () => void
+  onDelete?: () => void
   onImportOverride?: (updates: { title: string; objectives: string; logins_prerequisites: string; steps: SOPStep[] }) => void
 }
 
-export default function SOPViewer({ sop, onClose, onEdit, onImportOverride }: SOPViewerProps) {
+export default function SOPViewer({ sop, onClose, onEdit, onDelete, onImportOverride }: SOPViewerProps) {
   const [steps, setSteps] = useState<SOPStep[]>([])
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [expandedImage, setExpandedImage] = useState<{ data: string; caption?: string } | null>(null)
   const [showExport, setShowExport] = useState(false)
   const [showOptionsMenu, setShowOptionsMenu] = useState(false)
+  const [collapsedDecisions, setCollapsedDecisions] = useState<Set<string>>(new Set())
   const optionsMenuRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (sop.content && Array.isArray(sop.content)) {
-      setSteps(sop.content as unknown as SOPStep[])
+      const sopSteps = sop.content as unknown as SOPStep[]
+      setSteps(sopSteps)
+      // Initialize all decision steps as collapsed
+      const decisionIds = sopSteps
+        .filter(step => step.type === 'decision')
+        .map(step => step.id)
+      setCollapsedDecisions(new Set(decisionIds))
     }
   }, [sop])
 
@@ -53,12 +62,54 @@ export default function SOPViewer({ sop, onClose, onEdit, onImportOverride }: SO
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showOptionsMenu])
 
+  const toggleDecision = (stepId: string) => {
+    setCollapsedDecisions(prev => {
+      const next = new Set(prev)
+      if (next.has(stepId)) {
+        next.delete(stepId)
+      } else {
+        next.add(stepId)
+      }
+      return next
+    })
+  }
+
+  const scrollToStep = (e: React.MouseEvent<HTMLAnchorElement>, stepId: string) => {
+    e.preventDefault()
+    const element = document.getElementById(`step-${stepId}`)
+    if (element && contentRef.current) {
+      const container = contentRef.current
+      const elementTop = element.offsetTop - container.offsetTop
+      container.scrollTo({
+        top: elementTop - 24,
+        behavior: 'smooth'
+      })
+    }
+  }
+
+  const getStepNumber = (step: SOPStep): number | null => {
+    if (step.type === 'decision') return null
+    const regularSteps = steps.filter(s => s.type !== 'decision')
+    return regularSteps.indexOf(step) + 1
+  }
+
   return (
-    <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-[#f5f5f7]' : 'h-full'} flex flex-col p-3 transition-all duration-300`}>
-      <div className="bg-white rounded-2xl shadow-lg border border-[#e3e3e3] flex-1 flex flex-col overflow-hidden">
+    <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-[#f5f5f7]' : 'h-full relative'} flex flex-col p-3 transition-all duration-300`}>
+      <div className="bg-white rounded-2xl shadow-lg border border-[#e3e3e3] flex-1 flex flex-col overflow-hidden relative z-0">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#e3e3e3] bg-white">
           <div className="flex items-center gap-3 flex-1 min-w-0">
+            {onClose && !isFullscreen && (
+              <button
+                onClick={onClose}
+                className="p-2 -ml-2 text-[#878787] hover:text-[#1a1a1a] hover:bg-[#fafafa] rounded-xl transition-colors"
+                title="Back to dashboard"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
             <h2 className="text-xl font-semibold text-[#1a1a1a]">{sop.title}</h2>
             <div className="flex items-center gap-2">
               {sop.tags.map(tag => (
@@ -133,20 +184,28 @@ export default function SOPViewer({ sop, onClose, onEdit, onImportOverride }: SO
                         </svg>
                         Edit SOP
                       </button>
+                      {onDelete && (
+                        <button
+                          onClick={() => {
+                            if (confirm(`Are you sure you want to delete "${sop.title}"?`)) {
+                              onDelete()
+                              setShowOptionsMenu(false)
+                            }
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Delete SOP
+                        </button>
+                      )}
                     </>
                   )}
                 </div>
               )}
             </div>
 
-            {onClose && !isFullscreen && (
-              <button
-                onClick={onClose}
-                className="px-4 py-1.5 text-sm text-[#878787] hover:bg-[#fafafa] rounded-xl transition-colors"
-              >
-                Close
-              </button>
-            )}
             {isFullscreen && (
               <button
                 onClick={() => setIsFullscreen(false)}
@@ -159,7 +218,7 @@ export default function SOPViewer({ sop, onClose, onEdit, onImportOverride }: SO
         </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full">
+      <div ref={contentRef} className="flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full">
         {/* Objectives */}
         {sop.objectives && (
           <div className="mb-8">
@@ -181,15 +240,27 @@ export default function SOPViewer({ sop, onClose, onEdit, onImportOverride }: SO
           <div className="mb-8">
             <h3 className="text-lg font-semibold text-[#1a1a1a] mb-3">Contents</h3>
             <div className="space-y-2 bg-[#fafafa] p-5 rounded-xl border border-[#e3e3e3]">
-              {steps.map((step, index) => (
-                <a
-                  key={step.id}
-                  href={`#step-${step.id}`}
-                  className="block text-[#673ae4] hover:text-[#5d0f4c] transition-colors py-1"
-                >
-                  {index + 1}. {step.title}
-                </a>
-              ))}
+              {steps.map((step) => {
+                const stepNumber = getStepNumber(step)
+                const isDecision = step.type === 'decision'
+                return (
+                  <a
+                    key={step.id}
+                    href={`#step-${step.id}`}
+                    onClick={(e) => scrollToStep(e, step.id)}
+                    className="block text-[#673ae4] hover:text-[#5d0f4c] transition-colors py-1 flex items-center gap-2"
+                  >
+                    <span>
+                      {stepNumber ? `${stepNumber}. ` : ''}{step.title}
+                    </span>
+                    {isDecision && (
+                      <span className="text-xs font-medium text-[#3b82f6] bg-[#dbeafe] px-2 py-0.5 rounded-full">
+                        Decision
+                      </span>
+                    )}
+                  </a>
+                )
+              })}
             </div>
           </div>
         )}
@@ -199,51 +270,73 @@ export default function SOPViewer({ sop, onClose, onEdit, onImportOverride }: SO
           <div>
             <h3 className="text-lg font-semibold text-[#1a1a1a] mb-4">Steps</h3>
             <div className="space-y-4">
-              {steps.map((step, index) => {
+              {steps.map((step) => {
                 const isDecision = step.type === 'decision'
+                const stepNumber = getStepNumber(step)
+                const isCollapsed = isDecision && collapsedDecisions.has(step.id)
                 return (
                 <div
                   key={step.id}
                   id={`step-${step.id}`}
-                  className={`scroll-mt-4 rounded-xl p-5 ${
+                  className={`rounded-xl p-5 scroll-mt-24 ${
                     isDecision
                       ? 'bg-[#f0f7ff] border-2 border-[#3b82f6]'
                       : 'bg-[#fafafa] border border-[#e3e3e3]'
                   }`}
                 >
                   <div className="flex items-start space-x-4">
-                    <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-semibold shadow-sm ${
-                      isDecision ? 'bg-[#3b82f6]' : 'bg-[#673ae4]'
-                    }`}>
-                      {index + 1}
-                    </div>
+                    {stepNumber && (
+                      <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-semibold shadow-sm bg-[#673ae4]">
+                        {stepNumber}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
                         <h4 className="text-[#1a1a1a] font-semibold">{step.title}</h4>
                         {isDecision && (
-                          <span className="text-xs font-medium text-[#3b82f6] bg-[#dbeafe] px-2 py-0.5 rounded-full">
-                            Decision
-                          </span>
+                          <>
+                            <span className="text-xs font-medium text-[#3b82f6] bg-[#dbeafe] px-2 py-0.5 rounded-full">
+                              Decision
+                            </span>
+                            <button
+                              onClick={() => toggleDecision(step.id)}
+                              className="ml-auto p-1 text-[#3b82f6] hover:bg-[#dbeafe] rounded-lg transition-all"
+                              title={isCollapsed ? 'Expand decision' : 'Collapse decision'}
+                            >
+                              <svg
+                                className={`w-5 h-5 transition-transform ${isCollapsed ? '' : 'rotate-180'}`}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
+                          </>
                         )}
                       </div>
-                      <div className="text-[#1a1a1a] whitespace-pre-wrap">{step.content}</div>
-                      {step.images && step.images.length > 0 && (
-                        <div className="mt-4 space-y-3">
-                          {step.images.map((image) => (
-                            <div key={image.id} className="bg-white border border-[#e3e3e3] rounded-lg p-3">
-                              <img
-                                src={image.data}
-                                alt={image.caption || 'Step image'}
-                                className="max-w-full max-h-96 object-contain rounded cursor-pointer hover:opacity-90 transition-opacity"
-                                onClick={() => setExpandedImage({ data: image.data, caption: image.caption })}
-                                title="Click to expand"
-                              />
-                              {image.caption && (
-                                <p className="mt-2 text-sm text-[#878787] italic">{image.caption}</p>
-                              )}
+                      {!isCollapsed && (
+                        <>
+                          <div className="text-[#1a1a1a] whitespace-pre-wrap">{step.content}</div>
+                          {step.images && step.images.length > 0 && (
+                            <div className="mt-4 space-y-3">
+                              {step.images.map((image) => (
+                                <div key={image.id} className="bg-white border border-[#e3e3e3] rounded-lg p-3">
+                                  <img
+                                    src={image.data}
+                                    alt={image.caption || 'Step image'}
+                                    className="max-w-full max-h-96 object-contain rounded cursor-pointer hover:opacity-90 transition-opacity"
+                                    onClick={() => setExpandedImage({ data: image.data, caption: image.caption })}
+                                    title="Click to expand"
+                                  />
+                                  {image.caption && (
+                                    <p className="mt-2 text-sm text-[#878787] italic">{image.caption}</p>
+                                  )}
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>

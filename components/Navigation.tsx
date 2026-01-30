@@ -29,7 +29,7 @@ export default function Navigation({
   }
 
   return (
-    <div className="sticky top-0 z-50 p-3 pb-0">
+    <div className="sticky top-0 z-[100] p-3 pb-0 bg-[#f5f5f7]">
       {/* Top Level Navigation */}
       <div className="bg-white rounded-2xl shadow-lg border border-[#e3e3e3]">
         <div className="px-6">

@@ -1,22 +1,33 @@
 'use client'
 
 import { useState } from 'react'
-import { SOPWithTags, PromptWithTags, Tag } from '@/lib/types/database'
+import { SOPWithTags, PromptWithTags, ResourceWithTags, Tag } from '@/lib/types/database'
+import { RecentView } from '@/lib/utils/recentViews'
 
-type View = 'all-sops' | 'all-prompts'
+type View = 'all-sops' | 'all-prompts' | 'all-resources'
 
 interface SidebarProps {
   activeApp: 'knowledge-base' | 'reporting' | 'copywriting'
   activeView: View
   selectedItemId: string | null
   onViewChange: (view: View) => void
-  onItemSelect: (itemId: string, itemType: 'sop' | 'prompt') => void
-  onCreateNew: (type: 'sop' | 'prompt') => void
+  onItemSelect: (itemId: string, itemType: 'sop' | 'prompt' | 'resource') => void
+  onCreateNew: (type: 'sop' | 'prompt' | 'resource') => void
   onUploadSop: () => void
   tags: Tag[]
   sops: SOPWithTags[]
   prompts: PromptWithTags[]
+  resources: ResourceWithTags[]
+  recentViews: RecentView[]
   isAdmin: boolean
+  isPinned: boolean
+  onPinnedChange: (pinned: boolean) => void
+  isSOPsExpanded: boolean
+  onSOPsExpandedChange: (expanded: boolean) => void
+  isPromptsExpanded: boolean
+  onPromptsExpandedChange: (expanded: boolean) => void
+  isResourcesExpanded: boolean
+  onResourcesExpandedChange: (expanded: boolean) => void
 }
 
 export default function Sidebar({
@@ -30,12 +41,19 @@ export default function Sidebar({
   tags,
   sops,
   prompts,
-  isAdmin
+  resources,
+  recentViews,
+  isAdmin,
+  isPinned,
+  onPinnedChange,
+  isSOPsExpanded,
+  onSOPsExpandedChange,
+  isPromptsExpanded,
+  onPromptsExpandedChange,
+  isResourcesExpanded,
+  onResourcesExpandedChange
 }: SidebarProps) {
-  const [isSOPsExpanded, setIsSOPsExpanded] = useState(true)
-  const [isPromptsExpanded, setIsPromptsExpanded] = useState(false)
   const [expandedTagIds, setExpandedTagIds] = useState<Set<string>>(new Set())
-  const [isPinned, setIsPinned] = useState(false)
 
   if (activeApp !== 'knowledge-base') {
     return null // Only show sidebar in Knowledge Base
@@ -69,7 +87,7 @@ export default function Sidebar({
 
   const expandAllSopTags = () => {
     const nextExpanded = !isSOPsExpanded
-    setIsSOPsExpanded(nextExpanded)
+    onSOPsExpandedChange(nextExpanded)
     const newExpanded = new Set(expandedTagIds)
     const sopTagIds = sopsGroupedByTag.map(group => group.tag.id)
     if (untaggedSOPs.length > 0) sopTagIds.push('untagged-sops')
@@ -83,7 +101,7 @@ export default function Sidebar({
 
   const expandAllPromptTags = () => {
     const nextExpanded = !isPromptsExpanded
-    setIsPromptsExpanded(nextExpanded)
+    onPromptsExpandedChange(nextExpanded)
     const newExpanded = new Set(expandedTagIds)
     const promptTagIds = promptsGroupedByTag.map(group => `prompt-${group.tag.id}`)
     if (untaggedPrompts.length > 0) promptTagIds.push('untagged-prompts')
@@ -91,6 +109,28 @@ export default function Sidebar({
       promptTagIds.forEach(id => newExpanded.add(id))
     } else {
       promptTagIds.forEach(id => newExpanded.delete(id))
+    }
+    setExpandedTagIds(newExpanded)
+  }
+
+  // Group Resources by tag
+  const resourcesGroupedByTag = tags.map(tag => ({
+    tag,
+    resources: resources.filter(resource => resource.tags.some(t => t.id === tag.id)).sort((a, b) => a.title.localeCompare(b.title))
+  })).filter(group => group.resources.length > 0)
+
+  const untaggedResources = resources.filter(resource => resource.tags.length === 0).sort((a, b) => a.title.localeCompare(b.title))
+
+  const expandAllResourceTags = () => {
+    const nextExpanded = !isResourcesExpanded
+    onResourcesExpandedChange(nextExpanded)
+    const newExpanded = new Set(expandedTagIds)
+    const resourceTagIds = resourcesGroupedByTag.map(group => `resource-${group.tag.id}`)
+    if (untaggedResources.length > 0) resourceTagIds.push('untagged-resources')
+    if (nextExpanded) {
+      resourceTagIds.forEach(id => newExpanded.add(id))
+    } else {
+      resourceTagIds.forEach(id => newExpanded.delete(id))
     }
     setExpandedTagIds(newExpanded)
   }
@@ -109,7 +149,7 @@ export default function Sidebar({
             Knowledge Base
           </h2>
           <button
-            onClick={() => setIsPinned(!isPinned)}
+            onClick={() => onPinnedChange(!isPinned)}
             className={`p-1.5 rounded-lg transition-all duration-200 ${isPinned ? 'text-[#673ae4] bg-[#f3f4ff]' : 'text-[#878787] hover:bg-[#fafafa] hover:text-[#1a1a1a]'}`}
             title={isPinned ? 'Unpin sidebar' : 'Pin sidebar'}
           >
@@ -123,6 +163,34 @@ export default function Sidebar({
       {/* Navigation */}
       <div className={`flex-1 overflow-y-auto p-2 ${isPinned ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity duration-300`}>
         <div className="space-y-2">
+          {/* Recent Section */}
+          {recentViews.length > 0 && (
+            <div className="mb-4">
+              <div className="px-3 py-2 text-xs font-semibold text-[#878787] uppercase tracking-wide">
+                Recent
+              </div>
+              <div className="space-y-0.5">
+                {recentViews.slice(0, 3).map((recent) => {
+                  const icon = recent.type === 'sop' ? '📚' : recent.type === 'prompt' ? '💬' : '📎'
+                  return (
+                    <button
+                      key={`${recent.type}-${recent.id}`}
+                      onClick={() => onItemSelect(recent.id, recent.type)}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-all duration-200 flex items-center gap-2 ${
+                        selectedItemId === recent.id
+                          ? 'bg-[#f3f4ff] text-[#673ae4] font-medium border border-[#673ae4]/20 shadow-sm'
+                          : 'text-[#878787] hover:bg-[#fafafa] hover:text-[#1a1a1a] border border-transparent'
+                      }`}
+                    >
+                      <span className="text-sm">{icon}</span>
+                      <span className="truncate block flex-1">{recent.title}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="border-t border-[#e3e3e3] mt-3 mb-3" />
+            </div>
+          )}
           {/* All SOPs Section */}
           <div>
             <div className="flex items-center space-x-1">
@@ -342,6 +410,110 @@ export default function Sidebar({
               </div>
             )}
           </div>
+
+          {/* All Resources Section */}
+          <div>
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={() => {
+                  expandAllResourceTags()
+                  onViewChange('all-resources')
+                }}
+                className={`flex-1 flex items-center space-x-2 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${
+                  activeView === 'all-resources'
+                    ? 'bg-[#f3f4ff] text-[#673ae4] font-medium shadow-sm border border-[#673ae4]/20'
+                    : 'text-[#878787] hover:bg-[#fafafa] hover:text-[#1a1a1a]'
+                }`}
+              >
+                <span className={`text-xs transition-transform ${isResourcesExpanded ? 'rotate-90' : ''}`}>▶</span>
+                <span className="text-base">📎</span>
+                <span className="flex-1 text-left">Resources</span>
+                <span className="text-xs opacity-60">{resources.length}</span>
+              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => onCreateNew('resource')}
+                  className="p-2 text-[#673ae4] hover:bg-[#f3f4ff] rounded-lg transition-colors"
+                  title="New Resource"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {isResourcesExpanded && (
+              <div className="ml-3 mt-1 space-y-1">
+                {resourcesGroupedByTag.map(({ tag, resources: tagResources }) => (
+                  <div key={tag.id}>
+                    <button
+                      onClick={() => toggleTag(`resource-${tag.id}`)}
+                      className="w-full flex items-center space-x-2 px-3 py-2 rounded-xl text-sm text-[#878787] hover:bg-[#fafafa] hover:text-[#1a1a1a] transition-all duration-200"
+                    >
+                      <span className={`text-xs transition-transform ${expandedTagIds.has(`resource-${tag.id}`) ? 'rotate-90' : ''}`}>▶</span>
+                      <div
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: tag.color }}
+                      />
+                      <span className="flex-1 text-left truncate text-xs font-medium">{tag.name}</span>
+                      <span className="text-xs opacity-60">{tagResources.length}</span>
+                    </button>
+
+                    {expandedTagIds.has(`resource-${tag.id}`) && (
+                      <div className="ml-6 mt-0.5 space-y-0.5">
+                        {tagResources.map(resource => (
+                          <button
+                            key={resource.id}
+                            onClick={() => onItemSelect(resource.id, 'resource')}
+                            className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-all duration-200 ${
+                              selectedItemId === resource.id
+                                ? 'bg-[#f3f4ff] text-[#673ae4] font-medium border border-[#673ae4]/20 shadow-sm'
+                                : 'text-[#878787] hover:bg-[#fafafa] hover:text-[#1a1a1a] border border-transparent'
+                            }`}
+                          >
+                            <span className="truncate block">{resource.title}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {untaggedResources.length > 0 && (
+                  <div>
+                    <button
+                      onClick={() => toggleTag('untagged-resources')}
+                      className="w-full flex items-center space-x-2 px-3 py-2 rounded-xl text-sm text-[#878787] hover:bg-[#fafafa] hover:text-[#1a1a1a] transition-all duration-200"
+                    >
+                      <span className={`text-xs transition-transform ${expandedTagIds.has('untagged-resources') ? 'rotate-90' : ''}`}>▶</span>
+                      <div className="w-2 h-2 rounded-full flex-shrink-0 bg-[#878787]" />
+                      <span className="flex-1 text-left truncate text-xs font-medium">Untagged</span>
+                      <span className="text-xs opacity-60">{untaggedResources.length}</span>
+                    </button>
+
+                    {expandedTagIds.has('untagged-resources') && (
+                      <div className="ml-6 mt-0.5 space-y-0.5">
+                        {untaggedResources.map(resource => (
+                          <button
+                            key={resource.id}
+                            onClick={() => onItemSelect(resource.id, 'resource')}
+                            className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-all duration-200 ${
+                              selectedItemId === resource.id
+                                ? 'bg-[#f3f4ff] text-[#673ae4] font-medium border border-[#673ae4]/20 shadow-sm'
+                                : 'text-[#878787] hover:bg-[#fafafa] hover:text-[#1a1a1a] border border-transparent'
+                            }`}
+                          >
+                            <span className="truncate block">{resource.title}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -350,7 +522,7 @@ export default function Sidebar({
         <div className="text-xs text-[#878787] px-3">
           <div className="flex justify-between mb-1">
             <span>Total Items</span>
-            <span className="font-medium">{sops.length + prompts.length}</span>
+            <span className="font-medium">{sops.length + prompts.length + resources.length}</span>
           </div>
         </div>
       </div>

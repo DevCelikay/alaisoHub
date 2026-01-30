@@ -19,12 +19,24 @@ export default function PromptViewer({ prompt, onClose, onEdit }: PromptViewerPr
   }
 
   return (
-    <div className="h-full flex flex-col p-3">
-      <div className="bg-white rounded-2xl shadow-lg border border-[#e3e3e3] flex-1 flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col p-3 relative">
+      <div className="bg-white rounded-2xl shadow-lg border border-[#e3e3e3] flex-1 flex flex-col overflow-hidden relative z-0">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-[#e3e3e3] bg-white">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-semibold text-[#1a1a1a] mb-2">{prompt.title}</h2>
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="p-2 -ml-2 text-[#878787] hover:text-[#1a1a1a] hover:bg-[#fafafa] rounded-xl transition-colors"
+                title="Back to dashboard"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
+            <div className="flex-1 min-w-0">
+              <h2 className="text-2xl font-semibold text-[#1a1a1a] mb-2">{prompt.title}</h2>
             <div className="flex items-center space-x-2">
               {prompt.tags.map(tag => (
                 <span
@@ -39,6 +51,7 @@ export default function PromptViewer({ prompt, onClose, onEdit }: PromptViewerPr
                 </span>
               ))}
             </div>
+            </div>
           </div>
           <div className="flex items-center space-x-2 ml-4">
             {onEdit && (
@@ -47,14 +60,6 @@ export default function PromptViewer({ prompt, onClose, onEdit }: PromptViewerPr
                 className="px-5 py-2 text-sm text-[#673ae4] hover:bg-[#f3f4ff] rounded-xl transition-colors font-medium"
               >
                 Edit
-              </button>
-            )}
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="px-5 py-2 text-sm text-[#878787] hover:bg-[#fafafa] rounded-xl transition-colors"
-              >
-                Close
               </button>
             )}
           </div>

@@ -2,112 +2,183 @@
 
 // =====================================================
 // ReportingDashboard Component
-// Fresh start - Reporting center with dropdown module
+// Streamlined reporting center with tabs navigation
 // =====================================================
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { BarChart3, List, GitCompare, Clock, Heart } from 'lucide-react'
 import CampaignList from './CampaignList'
 
 type ReportingView = 'campaign-list' | 'variant-analysis' | 'timeline-analytics' | 'client-health'
 
-const REPORTING_VIEWS: { value: ReportingView; label: string }[] = [
-  { value: 'campaign-list', label: 'Campaign List' },
-  { value: 'variant-analysis', label: 'Variant Analysis' },
-  { value: 'timeline-analytics', label: 'Timeline Analytics' },
-  { value: 'client-health', label: 'Client Health' },
+interface ViewConfig {
+  value: ReportingView
+  label: string
+  icon: React.ReactNode
+  available: boolean
+}
+
+const REPORTING_VIEWS: ViewConfig[] = [
+  { value: 'campaign-list', label: 'Campaigns', icon: <List className="w-4 h-4" />, available: true },
+  { value: 'variant-analysis', label: 'Variants', icon: <GitCompare className="w-4 h-4" />, available: false },
+  { value: 'timeline-analytics', label: 'Timeline', icon: <Clock className="w-4 h-4" />, available: false },
+  { value: 'client-health', label: 'Health', icon: <Heart className="w-4 h-4" />, available: false },
 ]
 
 export default function ReportingDashboard() {
-  const [selectedView, setSelectedView] = useState<ReportingView | null>(null)
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [selectedView, setSelectedView] = useState<ReportingView>('campaign-list')
+  const [stats, setStats] = useState({
+    totalCampaigns: 0,
+    activeCampaigns: 0,
+    totalSent: 0,
+    totalReplies: 0,
+  })
 
-  const selectedViewLabel = selectedView
-    ? REPORTING_VIEWS.find((v) => v.value === selectedView)?.label
-    : 'Select a view...'
+  // Fetch summary stats on mount
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/campaigns')
+        if (response.ok) {
+          const data = await response.json()
+          const campaigns = data.campaigns || []
+          setStats({
+            totalCampaigns: campaigns.length,
+            activeCampaigns: campaigns.filter((c: any) => c.status === 1).length,
+            totalSent: campaigns.reduce((sum: number, c: any) => sum + (c.emails_sent || 0), 0),
+            totalReplies: campaigns.reduce((sum: number, c: any) => sum + (c.replies || 0), 0),
+          })
+        }
+      } catch (err) {
+        console.error('Failed to fetch stats:', err)
+      }
+    }
+    fetchStats()
+  }, [])
+
+  const avgReplyRate = stats.totalSent > 0
+    ? ((stats.totalReplies / stats.totalSent) * 100).toFixed(2)
+    : '0.00'
 
   return (
-    <div className="p-6">
-      {/* Top Left: Reporting View Header */}
-      <h1 className="text-2xl font-semibold mb-4">Reporting View</h1>
+    <div className="h-full flex flex-col">
+      {/* Compact Header with Stats */}
+      <div className="bg-white border-b border-[#e3e3e3] px-6 py-4">
+        <div className="flex items-center justify-between">
+          {/* Title and Tabs */}
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-[#673ae4]" />
+              <h1 className="text-lg font-semibold text-[#1a1a1a]">Reporting</h1>
+            </div>
 
-      {/* Compact Dropdown Module - Top Left */}
-      <div className="relative inline-block w-[293px]">
-        <div className="rounded-md border border-[#1971c2] p-4">
-          <label className="text-base font-semibold text-[#1971c2] block mb-3">
-            Dropdown
-          </label>
+            {/* Tab Navigation */}
+            <div className="flex items-center gap-1 bg-[#f5f5f7] rounded-lg p-1">
+              {REPORTING_VIEWS.map((view) => (
+                <button
+                  key={view.value}
+                  onClick={() => view.available && setSelectedView(view.value)}
+                  disabled={!view.available}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    selectedView === view.value
+                      ? 'bg-white text-[#673ae4] shadow-sm'
+                      : view.available
+                        ? 'text-[#878787] hover:text-[#1a1a1a]'
+                        : 'text-[#c4c4c4] cursor-not-allowed'
+                  }`}
+                  title={!view.available ? 'Coming soon' : undefined}
+                >
+                  {view.icon}
+                  <span>{view.label}</span>
+                  {!view.available && (
+                    <span className="text-[10px] bg-[#e3e3e3] text-[#878787] px-1 rounded">Soon</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
 
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="w-full flex items-center justify-between rounded-md border border-[#1971c2] bg-white px-4 py-3 text-left text-base hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#1971c2] focus:ring-offset-2 transition-colors"
-            >
-              <span className={selectedView ? 'text-gray-900' : 'text-gray-500'}>
-                {selectedViewLabel}
-              </span>
-              <svg
-                className={`h-5 w-5 text-[#1971c2] transition-transform ${
-                  isDropdownOpen ? 'rotate-180' : ''
-                }`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </button>
-
-            {isDropdownOpen && (
-              <>
-                {/* Backdrop */}
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setIsDropdownOpen(false)}
-                />
-
-                {/* Dropdown Menu */}
-                <div className="absolute z-20 mt-1 w-full rounded-md border border-[#1971c2] bg-white shadow-lg overflow-hidden">
-                  {REPORTING_VIEWS.map((view, index) => (
-                    <button
-                      key={view.value}
-                      type="button"
-                      onClick={() => {
-                        setSelectedView(view.value)
-                        setIsDropdownOpen(false)
-                      }}
-                      className={`w-full text-left px-4 py-3 text-base border-b border-[#1971c2] last:border-b-0 hover:bg-[#1971c2] hover:text-white transition-colors ${
-                        selectedView === view.value
-                          ? 'bg-[#1971c2] text-white'
-                          : 'text-[#1971c2]'
-                      }`}
-                    >
-                      {view.label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
+          {/* Quick Stats */}
+          <div className="flex items-center gap-6">
+            <div className="text-right">
+              <p className="text-xs text-[#878787]">Campaigns</p>
+              <p className="text-sm font-semibold text-[#1a1a1a]">
+                {stats.activeCampaigns} <span className="text-[#878787] font-normal">/ {stats.totalCampaigns}</span>
+              </p>
+            </div>
+            <div className="w-px h-8 bg-[#e3e3e3]" />
+            <div className="text-right">
+              <p className="text-xs text-[#878787]">Total Sent</p>
+              <p className="text-sm font-semibold text-[#1a1a1a]">{stats.totalSent.toLocaleString()}</p>
+            </div>
+            <div className="w-px h-8 bg-[#e3e3e3]" />
+            <div className="text-right">
+              <p className="text-xs text-[#878787]">Replies</p>
+              <p className="text-sm font-semibold text-[#1a1a1a]">{stats.totalReplies.toLocaleString()}</p>
+            </div>
+            <div className="w-px h-8 bg-[#e3e3e3]" />
+            <div className="text-right">
+              <p className="text-xs text-[#878787]">Avg Reply Rate</p>
+              <p className="text-sm font-semibold text-[#00c22a]">{avgReplyRate}%</p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Content Area - Show selected view */}
-      {selectedView === 'campaign-list' && <CampaignList />}
-      {selectedView === 'variant-analysis' && (
-        <div className="mt-6 text-gray-500">Variant Analysis - Coming soon...</div>
-      )}
-      {selectedView === 'timeline-analytics' && (
-        <div className="mt-6 text-gray-500">Timeline Analytics - Coming soon...</div>
-      )}
-      {selectedView === 'client-health' && (
-        <div className="mt-6 text-gray-500">Client Health - Coming soon...</div>
-      )}
+      {/* Content Area */}
+      <div className="flex-1 overflow-y-auto p-6 bg-[#f5f5f7]">
+        {selectedView === 'campaign-list' && <CampaignList />}
+
+        {selectedView === 'variant-analysis' && (
+          <ComingSoonPlaceholder
+            title="Variant Analysis"
+            description="Compare performance across different email variants and A/B tests"
+            icon={<GitCompare className="w-12 h-12" />}
+          />
+        )}
+
+        {selectedView === 'timeline-analytics' && (
+          <ComingSoonPlaceholder
+            title="Timeline Analytics"
+            description="Track campaign performance over time with trend analysis"
+            icon={<Clock className="w-12 h-12" />}
+          />
+        )}
+
+        {selectedView === 'client-health' && (
+          <ComingSoonPlaceholder
+            title="Client Health"
+            description="Monitor deliverability and engagement health across clients"
+            icon={<Heart className="w-12 h-12" />}
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Compact Coming Soon placeholder
+function ComingSoonPlaceholder({
+  title,
+  description,
+  icon
+}: {
+  title: string
+  description: string
+  icon: React.ReactNode
+}) {
+  return (
+    <div className="flex items-center justify-center h-full">
+      <div className="text-center max-w-md">
+        <div className="inline-flex items-center justify-center w-20 h-20 bg-[#f3f4ff] text-[#673ae4] rounded-2xl mb-4">
+          {icon}
+        </div>
+        <h2 className="text-xl font-semibold text-[#1a1a1a] mb-2">{title}</h2>
+        <p className="text-[#878787] mb-4">{description}</p>
+        <span className="inline-flex items-center px-3 py-1 bg-[#fafafa] border border-[#e3e3e3] text-[#878787] text-sm rounded-full">
+          Coming Soon
+        </span>
+      </div>
     </div>
   )
 }

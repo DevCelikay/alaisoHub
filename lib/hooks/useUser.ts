@@ -15,8 +15,7 @@ export function useUser() {
 
     const fetchUser = async () => {
       try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
-        console.log('User fetched:', user, userError)
+        const { data: { user } } = await supabase.auth.getUser()
         setUser(user)
 
         if (user) {
@@ -26,12 +25,9 @@ export function useUser() {
             .eq('id', user.id)
             .single()
 
-          console.log('Profile fetched:', profile, profileError)
-
           // If profile doesn't exist, create it
           if (profileError && profileError.code === 'PGRST116') {
-            console.log('Profile not found, creating...')
-            const { data: newProfile, error: insertError } = await supabase
+            const { data: newProfile } = await supabase
               .from('profiles')
               .insert({
                 id: user.id,
@@ -42,7 +38,6 @@ export function useUser() {
               .select()
               .single()
 
-            console.log('New profile created:', newProfile, insertError)
             setProfile(newProfile)
           } else {
             setProfile(profile)
@@ -59,7 +54,6 @@ export function useUser() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-        console.log('Auth state changed:', _event, session?.user?.email)
         setUser(session?.user ?? null)
 
         if (session?.user) {
@@ -68,11 +62,9 @@ export function useUser() {
             .select('*')
             .eq('id', session.user.id)
             .single()
-          console.log('Profile on auth change:', profile, error)
 
           // If profile doesn't exist, create it
           if (error && error.code === 'PGRST116') {
-            console.log('Profile not found on auth change, creating...')
             const { data: newProfile } = await supabase
               .from('profiles')
               .insert({

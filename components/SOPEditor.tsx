@@ -390,6 +390,8 @@ export default function SOPEditor({ sop, tags, onClose, uploadedData }: SOPEdito
               <div className="space-y-4">
                 {steps.map((step, index) => {
                   const isDecision = step.type === 'decision'
+                  const regularSteps = steps.filter(s => s.type !== 'decision')
+                  const stepNumber = isDecision ? null : regularSteps.indexOf(step) + 1
                   return (
                   <div
                     key={step.id}
@@ -402,7 +404,7 @@ export default function SOPEditor({ sop, tags, onClose, uploadedData }: SOPEdito
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <span className={`text-sm font-medium ${isDecision ? 'text-[#3b82f6]' : 'text-[#878787]'}`}>
-                          Step {index + 1}
+                          {isDecision ? 'Decision' : `Step ${stepNumber}`}
                         </span>
                         <button
                           onClick={() => updateStep(step.id, 'type', isDecision ? 'standard' : 'decision')}
